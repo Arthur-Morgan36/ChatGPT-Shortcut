@@ -1,15 +1,24 @@
 // main.js
+const API_KEY = "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";
 
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
 const path = require("path");
+const { Configuration, OpenAIApi } = require("openai");
+
+const openai = new OpenAIApi(
+  new Configuration({
+    apiKey: API_KEY,
+  })
+);
 
 const KEYS = {
   F12: "f12",
   ESC: "escape",
+  ENTER: "enter",
 };
 
-const createWindow = () => {
+function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 670,
@@ -17,6 +26,7 @@ const createWindow = () => {
     x: 640,
     y: 270,
     resizable: false,
+
     useContentSize: true,
     minimizable: true,
     maximizable: false,
@@ -28,13 +38,16 @@ const createWindow = () => {
 
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: true,
+      contextIsolation: false,
     },
   });
 
   mainWindow.setMenuBarVisibility(false);
-
-  // and load the index.html of the app.
   mainWindow.loadFile("src/index.html");
+
+  // todo: remove after testing
+  // mainWindow.webContents.openDevTools();
 
   mainWindow.webContents.on("before-input-event", (ev, inp) => {
     if (inp.key.toLowerCase() === KEYS.F12) {
@@ -48,8 +61,42 @@ const createWindow = () => {
       console.log("App Minimzed");
       BrowserWindow.getFocusedWindow().minimize();
     }
+
+    if (inp.key.toLowerCase() === KEYS.ENTER) {
+      ipcMain.on("inp", (_, data) => {
+        openai
+          .createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: data }],
+          })
+          .then((res) => {
+            // todo: Make it create a new window with the query and the response to the query
+            console.log(res.data.choices[0].message.content);
+          });
+      });
+      ev.sender.send("inp-done", `Data Successfully Obtained.`);
+    }
   });
-};
+
+  const tray = new Tray(
+    "C:\\Users\\Arthur Morgan\\Desktop\\Programming\\ChatGPT Shortcut\\app.ico"
+  );
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Quit", type: "checkbox" },
+    { label: "Save History", type: "checkbox" },
+  ]);
+
+  tray.setToolTip("ChatGPTio");
+  tray.on("click", () => {
+    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+  });
+
+  tray.on("mouse-move", () => {
+    if (contextMenu.items[0].checked) app.quit();
+  });
+
+  tray.setContextMenu(contextMenu);
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -57,7 +104,6 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   createWindow();
-  focusOnInputField();
 
   app.on("activate", () => {
     // On macOS it's common to re-create a window in the app when the
@@ -71,16 +117,3 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-
-ipcMain.on("invokeAction", function (event, data) {
-  var result = processData(data);
-  event.sender.send("actionReply", result);
-});
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
-
-function focusOnInputField() {
-  const inputField = document.querySelector(".input-Field");
-  inputField.focus();
-}
