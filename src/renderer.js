@@ -29,6 +29,7 @@ document.addEventListener("keydown", (key) => {
   if (key.code === "Enter") ipcRenderer.send("inp", inputField.value);
 });
 
-ipcRenderer.on("inp-done", (_, data) => {
-  console.log(data);
-});
+// const result = document.querySelector(".result");
+// ipcRenderer.on("inp-done", (_, data) => {
+//   result.textContent = data;
+// });

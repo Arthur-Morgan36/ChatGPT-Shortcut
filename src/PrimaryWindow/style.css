@@ -9,20 +9,21 @@ html {
 }
 
 body {
-  background-color: #fff;
-
+  background-color: #171717;
+  
   height: 6rem;
   display: flex;
+  border: #373737 1px solid;
 }
 
 .input-field {
-  background-color: #202020;
+  background-color: #171717;
   justify-content: center;
   align-items: center;
-  border: none;
   padding: 2.5%;
   
-  width: 100%;
+  border: none;
+  width: 90%;
   height: 100%;
   
   text-align: left;
@@ -34,4 +35,9 @@ body {
 .input-field:focus, .input-field::after {
   border: none;
   outline: none;
+}
+
+.search-icon {
+  color: #373737;
+  padding: 2.5%;
 }

@@ -1,5 +1,5 @@
 // main.js
-const API_KEY = "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";
+const API_KEY = "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";
 
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain, Tray, Menu } = require("electron");
@@ -44,21 +44,18 @@ function createWindow() {
   });
 
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.loadFile("src/index.html");
-
-  // todo: remove after testing
-  // mainWindow.webContents.openDevTools();
+  mainWindow.loadFile("src/PrimaryWindow/index.html");
 
   mainWindow.webContents.on("before-input-event", (ev, inp) => {
     if (inp.key.toLowerCase() === KEYS.F12) {
-      console.log("Opening Dev Tools");
+      console.log(str("Opening Dev Tools"));
       ev.preventDefault();
 
       mainWindow.webContents.openDevTools();
     }
 
     if (inp.key.toLowerCase() === KEYS.ESC) {
-      console.log("App Minimzed");
+      console.log(str("App Minimzed"));
       BrowserWindow.getFocusedWindow().minimize();
     }
 
@@ -70,20 +67,45 @@ function createWindow() {
             messages: [{ role: "user", content: data }],
           })
           .then((res) => {
-            // todo: Make it create a new window with the query and the response to the query
-            console.log(res.data.choices[0].message.content);
-          });
+            // todo: Make it so it creates a new window if only the main window is up and just add new stuff to the other created window if it's already up.
+            const AI_Response = res.data.choices[0].message.content;
+
+            const outputWindow = new BrowserWindow({
+              width: 730,
+              height: 850,
+              center: true,
+              title: "Search Results",
+              titleBarStyle: "default",
+            });
+
+            outputWindow.setMenuBarVisibility(false);
+            outputWindow.loadFile("src/SecondaryWindow/index.html");
+
+            outputWindow.webContents.openDevTools();
+
+            // outputWindow.webContents.executeJavaScript(
+            //   getFnContent(displayResultinDOM(AI_Response))
+            // );
+
+            outputWindow.webContents.executeJavaScript(`
+              const resultEl = document.querySelector(".result");
+              resultEl.textContent = "${AI_Response}";
+              `);
+
+            ev.sender.send("inp-done", AI_Response);
+          })
+          .catch((err) => console.log(err));
       });
-      ev.sender.send("inp-done", `Data Successfully Obtained.`);
     }
   });
 
   const tray = new Tray(
-    "C:\\Users\\Arthur Morgan\\Desktop\\Programming\\ChatGPT Shortcut\\app.ico"
+    "C:\\Users\\Arthur Morgan\\Desktop\\Programming\\ChatGPT Shortcut\\ChatGPT Logo PNG.ico"
   );
   const contextMenu = Menu.buildFromTemplate([
     { label: "Quit", type: "checkbox" },
     { label: "Save History", type: "checkbox" },
+    { label: "Show Responses Window", type: "normal" },
   ]);
 
   tray.setToolTip("ChatGPTio");
@@ -98,8 +120,7 @@ function createWindow() {
   tray.setContextMenu(contextMenu);
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
+// This method will be called when Electron has finished initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 
 app.whenReady().then(() => {
@@ -117,3 +138,20 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+/// /////////////////////////////////////
+// * Helper functions
+
+function getFnContent(fn) {
+  const fnAsString = fn.toString();
+  return fn.slice(fnAsString.indexOf("{") + 1, fnAsString.lastIndexOf("}"));
+}
+
+function displayResultinDOM(response) {
+  const resultEl = document.querySelector(".result");
+  resultEl.textContent = response;
+}
+
+function str(string) {
+  return "\n" + string;
+}
